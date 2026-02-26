@@ -144,7 +144,8 @@ video {
     font-style: italic;
     text-align: center;
     width: 100%;
-    display: block;
     margin-top: -10px;
+    margin-bottom: 0;
 }
+
 
