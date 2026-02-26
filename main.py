@@ -28,8 +28,10 @@ def analizar_con_ia(producto: dict) -> dict:
     ingredientes = producto.get("ingredients_text", "No disponible")
     nutrientes = producto.get("nutriments", {})
     alergenos = producto.get("allergens_tags", [])
-    
+    aditivos = producto.get("additives_tags", [])
+
     alergenos_limpios = [a.replace("en:", "").replace("es:", "") for a in alergenos]
+    aditivos_limpios = [a.replace("en:", "") for a in aditivos]
 
     prompt = f"""
     Sos un nutricionista argentino. Analizá este producto de forma clara y simple.
@@ -43,13 +45,15 @@ def analizar_con_ia(producto: dict) -> dict:
     - Azúcares: {nutrientes.get('sugars_100g', 'N/D')} g
     - Sodio: {nutrientes.get('sodium_100g', 'N/D')} g
     Alérgenos: {', '.join(alergenos_limpios) if alergenos_limpios else 'Ninguno detectado'}
+    Aditivos: {', '.join(aditivos_limpios) if aditivos_limpios else 'Ninguno detectado'}
 
     Respondé en español argentino con EXACTAMENTE este formato, sin agregar nada antes ni después:
     PUNTUACION: [solo un número del 1 al 10, sin texto adicional]
     SALUDABLE: [solo una de estas palabras: Sí, No, Moderado]
     RESUMEN: [2 oraciones simples explicando si es saludable y por qué]
-    ALERGENOS: [lista los alérgenos separados por coma, o escribí "Ninguno detectado"]
+    ALERGENOS: [lista los alérgenos o "Ninguno detectado"]
     CONSEJO: [1 oración con una alternativa más saludable o un consejo práctico]
+    ADITIVOS: [si hay aditivos, explicá cada uno en lenguaje simple con este formato: "Nombre (código): para qué sirve y si es seguro o no". Si no hay aditivos escribí "Ninguno detectado"]
     """
 
     chat = client.chat.completions.create(
@@ -72,6 +76,7 @@ def analizar_con_ia(producto: dict) -> dict:
         "resumen": resultado.get("RESUMEN", "N/D"),
         "alergenos": resultado.get("ALERGENOS", "Ninguno detectado"),
         "consejo": resultado.get("CONSEJO", "N/D"),
+        "aditivos": resultado.get("ADITIVOS", "Ninguno detectado"),
     }
 
 @app.get("/", response_class=HTMLResponse)
