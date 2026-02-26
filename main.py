@@ -197,6 +197,10 @@ def agregar_a_openfoodfacts(barcode: str, datos: dict):
 async def index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
+@app.head("/")
+async def index_head():
+    return HTMLResponse(content="", status_code=200)
+
 @app.get("/analizar/{barcode}")
 async def analizar(barcode: str):
     producto = obtener_producto(barcode)
@@ -264,5 +268,6 @@ async def agregar_producto(barcode: str, req: ImagenRequest):
         return parsear_respuesta(chat.choices[0].message.content, datos.get("nombre", "Producto escaneado"), "Análisis por imagen ✨ Agregado a la base de datos")
     except Exception as e:
         return {"error": str(e)}
+
 
 
