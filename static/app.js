@@ -40,6 +40,10 @@ function mostrarResultado(data) {
             <span class="seccion-contenido">${data.alergenos}</span>
         </div>
         <div class="seccion">
+            <span class="seccion-titulo">🧪 Aditivos</span>
+            <span class="seccion-contenido">${data.aditivos}</span>
+        </div>
+        <div class="seccion">
             <span class="seccion-titulo">💡 Consejo</span>
             <span class="seccion-contenido">${data.consejo}</span>
         </div>
