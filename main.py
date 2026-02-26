@@ -15,12 +15,46 @@ templates = Jinja2Templates(directory="templates")
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+def obtener_producto_openfoodfacts(barcode: str):
+    try:
+        url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        if data.get("status") == 1:
+            return data["product"]
+    except:
+        pass
+    return None
+
+def obtener_producto_upc(barcode: str):
+    try:
+        url = f"https://api.upcitemdb.com/prod/trial/lookup?upc={barcode}"
+        response = requests.get(url, timeout=5)
+        data = response.json()
+        if data.get("code") == "OK" and data.get("items"):
+            item = data["items"][0]
+            return {
+                "product_name": item.get("title", "Desconocido"),
+                "ingredients_text": item.get("description", "No disponible"),
+                "nutriments": {},
+                "allergens_tags": [],
+                "additives_tags": [],
+                "fuente": "UPC Item DB"
+            }
+    except:
+        pass
+    return None
+
 def obtener_producto(barcode: str):
-    url = f"https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
-    response = requests.get(url)
-    data = response.json()
-    if data.get("status") == 1:
-        return data["product"]
+    producto = obtener_producto_openfoodfacts(barcode)
+    if producto:
+        producto["fuente"] = "Open Food Facts"
+        return producto
+
+    producto = obtener_producto_upc(barcode)
+    if producto:
+        return producto
+
     return None
 
 def analizar_con_ia(producto: dict) -> dict:
@@ -29,12 +63,13 @@ def analizar_con_ia(producto: dict) -> dict:
     nutrientes = producto.get("nutriments", {})
     alergenos = producto.get("allergens_tags", [])
     aditivos = producto.get("additives_tags", [])
+    fuente = producto.get("fuente", "Desconocido")
 
     alergenos_limpios = [a.replace("en:", "").replace("es:", "") for a in alergenos]
     aditivos_limpios = [a.replace("en:", "") for a in aditivos]
 
     prompt = f"""
-    Sos un nutricionista argentino. Analizá este producto de forma clara y simple.
+    Sos un nutricionista y toxicólogo argentino experto en seguridad alimentaria. Analizá este producto de forma clara y simple.
 
     Producto: {nombre}
     Ingredientes: {ingredientes}
@@ -53,7 +88,8 @@ def analizar_con_ia(producto: dict) -> dict:
     RESUMEN: [2 oraciones simples explicando si es saludable y por qué]
     ALERGENOS: [lista los alérgenos o "Ninguno detectado"]
     CONSEJO: [1 oración con una alternativa más saludable o un consejo práctico]
-    ADITIVOS: [si hay aditivos, explicá cada uno en lenguaje simple con este formato: "Nombre (código): para qué sirve y si es seguro o no". Si no hay aditivos escribí "Ninguno detectado"]
+    ADITIVOS: [si hay aditivos, explicá cada uno con este formato: "Nombre (código): para qué sirve y si es seguro". Si no hay escribí "Ninguno detectado"]
+    PROHIBIDOS: [mencioná si algún ingrediente o aditivo está prohibido o restringido en EEUU, Europa o Japón por ser cancerígeno o dañino, indicando en qué países y por qué. Si ninguno está prohibido escribí "Ninguno detectado"]
     """
 
     chat = client.chat.completions.create(
@@ -71,12 +107,14 @@ def analizar_con_ia(producto: dict) -> dict:
 
     return {
         "nombre": nombre,
+        "fuente": fuente,
         "puntuacion": resultado.get("PUNTUACION", "N/D"),
         "saludable": resultado.get("SALUDABLE", "N/D"),
         "resumen": resultado.get("RESUMEN", "N/D"),
         "alergenos": resultado.get("ALERGENOS", "Ninguno detectado"),
         "consejo": resultado.get("CONSEJO", "N/D"),
         "aditivos": resultado.get("ADITIVOS", "Ninguno detectado"),
+        "prohibidos": resultado.get("PROHIBIDOS", "Ninguno detectado"),
     }
 
 @app.get("/", response_class=HTMLResponse)
