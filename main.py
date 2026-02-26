@@ -228,7 +228,7 @@ async def analizar_imagen(req: ImagenRequest):
         )
         chat = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant",
+            model="llama-3.2-11b-vision-instant",
         )
         return parsear_respuesta(chat.choices[0].message.content, datos.get("nombre", "Producto escaneado"), "Análisis por imagen")
     except Exception as e:
@@ -264,3 +264,4 @@ async def agregar_producto(barcode: str, req: ImagenRequest):
         return parsear_respuesta(chat.choices[0].message.content, datos.get("nombre", "Producto escaneado"), "Análisis por imagen ✨ Agregado a la base de datos")
     except Exception as e:
         return {"error": str(e)}
+
