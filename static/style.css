@@ -25,9 +25,20 @@ body {
 }
 
 h1 {
-    font-size: 2rem;
+    font-family: 'Montserrat', 'Segoe UI', sans-serif;
     font-weight: 700;
+    font-size: 2rem;
     color: #00e676;
+}
+
+.creditos {
+    font-size: 0.75rem;
+    color: #666666;
+    font-style: italic;
+    text-align: center;
+    width: 100%;
+    margin-top: -10px;
+    margin-bottom: 0;
 }
 
 .subtitle {
@@ -36,32 +47,11 @@ h1 {
     text-align: center;
 }
 
-.scanner-area {
-    position: relative;
+#reader {
     width: 100%;
     border-radius: 16px;
     overflow: hidden;
     border: 2px solid #00e676;
-}
-
-video {
-    width: 100%;
-    display: block;
-}
-
-.scan-line {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background: #00e676;
-    animation: scan 2s linear infinite;
-}
-
-@keyframes scan {
-    0% { top: 0; }
-    100% { top: 100%; }
 }
 
 .resultado {
@@ -83,6 +73,12 @@ video {
     font-size: 1.2rem;
     font-weight: 700;
     color: #ffffff;
+}
+
+.fuente {
+    font-size: 0.75rem;
+    color: #555555;
+    font-style: italic;
 }
 
 .puntuacion {
@@ -134,22 +130,118 @@ video {
     padding: 20px;
 }
 
-.error {
-    color: #ff1744;
-    text-align: center;
-    font-size: 0.95rem;
-.creditos {
-    font-size: 0.75rem;
-    color: #666666;
-    font-style: italic;
-    text-align: center;
+.error-box {
+    background: #1a1a1a;
+    border: 1px solid #ff174433;
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
     width: 100%;
-    margin-top: -10px;
-    margin-bottom: 0;
-h1 {
-    font-family: 'Montserrat', 'Segoe UI', sans-serif;
-    font-weight: 700;
+    text-align: center;
 }
 
+.error-box p {
+    color: #ff6b6b;
+    font-size: 0.95rem;
+}
 
+.btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
 
+.btn-primary {
+    background: #00e676;
+    color: #0f0f0f;
+}
+
+.btn-primary:hover {
+    background: #00c864;
+}
+
+.btn-secondary {
+    background: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #333333;
+}
+
+.btn-secondary:hover {
+    background: #2a2a2a;
+}
+
+.btn-whatsapp {
+    background: #25D36622;
+    color: #25D366;
+    border: 1px solid #25D36644;
+}
+
+.btn-whatsapp:hover {
+    background: #25D36633;
+}
+
+.btn-telegram {
+    background: #229ED922;
+    color: #229ED9;
+    border: 1px solid #229ED944;
+}
+
+.btn-telegram:hover {
+    background: #229ED933;
+}
+
+.acciones {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    margin-top: 6px;
+}
+
+.acciones-compartir {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+}
+
+.acciones-compartir .btn {
+    flex: 1;
+}
+
+input[type="file"] {
+    display: none;
+}
+
+.upload-label {
+    width: 100%;
+    padding: 14px;
+    border-radius: 12px;
+    border: 1px dashed #00e676;
+    background: #00e67611;
+    color: #00e676;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    display: block;
+}
+
+.upload-label:hover {
+    background: #00e67622;
+}
+
+.divider {
+    width: 100%;
+    height: 1px;
+    background: #2a2a2a;
+    margin: 4px 0;
+}
