@@ -138,4 +138,10 @@ video {
     color: #ff1744;
     text-align: center;
     font-size: 0.95rem;
+.creditos {
+    font-size: 0.75rem;
+    color: #666666;
+    font-style: italic;
+    text-align: center;
 }
+
