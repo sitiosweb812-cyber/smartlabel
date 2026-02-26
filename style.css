@@ -1,0 +1,141 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #0f0f0f;
+    color: #ffffff;
+    font-family: 'Segoe UI', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 480px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #00e676;
+}
+
+.subtitle {
+    font-size: 0.95rem;
+    color: #aaaaaa;
+    text-align: center;
+}
+
+.scanner-area {
+    position: relative;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid #00e676;
+}
+
+video {
+    width: 100%;
+    display: block;
+}
+
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: #00e676;
+    animation: scan 2s linear infinite;
+}
+
+@keyframes scan {
+    0% { top: 0; }
+    100% { top: 100%; }
+}
+
+.resultado {
+    width: 100%;
+    background: #1a1a1a;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border: 1px solid #2a2a2a;
+}
+
+.resultado.hidden {
+    display: none;
+}
+
+.producto-nombre {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+.puntuacion {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.puntaje {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #00e676;
+}
+
+.badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.badge.si { background: #00e67622; color: #00e676; }
+.badge.no { background: #ff174422; color: #ff1744; }
+.badge.moderado { background: #ffd74022; color: #ffd740; }
+
+.seccion {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.seccion-titulo {
+    font-size: 0.75rem;
+    color: #777777;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.seccion-contenido {
+    font-size: 0.95rem;
+    color: #dddddd;
+    line-height: 1.5;
+}
+
+.cargando {
+    text-align: center;
+    color: #aaaaaa;
+    font-size: 0.95rem;
+    padding: 20px;
+}
+
+.error {
+    color: #ff1744;
+    text-align: center;
+    font-size: 0.95rem;
+}
