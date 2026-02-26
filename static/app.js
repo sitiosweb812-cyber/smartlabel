@@ -86,7 +86,18 @@ function textoCompartir(data) {
 
 function mostrarResultado(data) {
     if (data.error) {
-        mostrarProductoNoEncontrado();
+        if (imagenFrenteBase64) {
+            resultadoDiv.classList.remove("hidden");
+            resultadoDiv.innerHTML = `
+                <div class="error-box">
+                    <p>❌ Error al analizar las imágenes</p>
+                    <p style="color:#777;font-size:0.85rem">${data.error}</p>
+                    <button class="btn btn-secondary" onclick="reiniciar()">🔄 Intentar de nuevo</button>
+                </div>
+            `;
+        } else {
+            mostrarProductoNoEncontrado();
+        }
         return;
     }
 
@@ -178,3 +189,4 @@ html5QrCode.start(
 ).catch(err => {
     mostrarMensaje("❌ Error al iniciar cámara: " + err);
 });
+
