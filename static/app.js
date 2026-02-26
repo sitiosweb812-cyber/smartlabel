@@ -27,6 +27,7 @@ function mostrarResultado(data) {
     resultadoDiv.classList.remove("hidden");
     resultadoDiv.innerHTML = `
         <div class="producto-nombre">${data.nombre}</div>
+        <div class="fuente">Fuente: ${data.fuente}</div>
         <div class="puntuacion">
             <span class="puntaje">${data.puntuacion}/10</span>
             <span class="badge ${badgeClass}">${data.saludable}</span>
@@ -42,6 +43,10 @@ function mostrarResultado(data) {
         <div class="seccion">
             <span class="seccion-titulo">🧪 Aditivos</span>
             <span class="seccion-contenido">${data.aditivos}</span>
+        </div>
+        <div class="seccion">
+            <span class="seccion-titulo">🚫 Prohibidos en otros países</span>
+            <span class="seccion-contenido">${data.prohibidos}</span>
         </div>
         <div class="seccion">
             <span class="seccion-titulo">💡 Consejo</span>
