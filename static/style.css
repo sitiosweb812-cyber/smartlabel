@@ -143,5 +143,8 @@ video {
     color: #666666;
     font-style: italic;
     text-align: center;
+    width: 100%;
+    display: block;
+    margin-top: -10px;
 }
 
