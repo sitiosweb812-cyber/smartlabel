@@ -1,6 +1,25 @@
 const resultadoDiv = document.getElementById("resultado");
 let ultimoAnalisis = null;
 let ultimoBarcode = null;
+let imagenFrenteBase64 = null;
+
+function comprimirImagen(base64, calidad = 0.5) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement("canvas");
+            const maxWidth = 800;
+            const scale = Math.min(1, maxWidth / img.width);
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const comprimida = canvas.toDataURL("image/jpeg", calidad);
+            resolve(comprimida.split(",")[1]);
+        };
+        img.src = "data:image/jpeg;base64," + base64;
+    });
+}
 
 function mostrarMensaje(texto) {
     resultadoDiv.classList.remove("hidden");
@@ -13,6 +32,7 @@ function mostrarCargando() {
 }
 
 function mostrarProductoNoEncontrado() {
+    imagenFrenteBase64 = null;
     resultadoDiv.classList.remove("hidden");
     resultadoDiv.innerHTML = `
         <div class="error-box">
@@ -37,14 +57,12 @@ function mostrarProductoNoEncontrado() {
     document.getElementById("foto-frente").addEventListener("change", manejarFotoFrente);
 }
 
-let imagenFrenteBase64 = null;
-
 function manejarFotoFrente(e) {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = function(ev) {
-        imagenFrenteBase64 = ev.target.result.split(",")[1];
+    reader.onload = async function(ev) {
+        imagenFrenteBase64 = await comprimirImagen(ev.target.result.split(",")[1]);
         document.getElementById("paso2").style.display = "block";
         document.getElementById("foto-ingredientes").addEventListener("change", manejarFotoIngredientes);
     };
@@ -56,8 +74,8 @@ function manejarFotoIngredientes(e) {
     if (!file) return;
     mostrarCargando();
     const reader = new FileReader();
-    reader.onload = function(ev) {
-        const imagenIngredientesBase64 = ev.target.result.split(",")[1];
+    reader.onload = async function(ev) {
+        const imagenIngredientesBase64 = await comprimirImagen(ev.target.result.split(",")[1]);
         const endpoint = ultimoBarcode ? `/agregar-producto/${ultimoBarcode}` : "/analizar-imagen";
         fetch(endpoint, {
             method: "POST",
@@ -189,4 +207,3 @@ html5QrCode.start(
 ).catch(err => {
     mostrarMensaje("❌ Error al iniciar cámara: " + err);
 });
-
