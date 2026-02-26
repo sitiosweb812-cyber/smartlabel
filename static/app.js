@@ -1,5 +1,6 @@
 const resultadoDiv = document.getElementById("resultado");
 let ultimoAnalisis = null;
+let ultimoBarcode = null;
 
 function mostrarMensaje(texto) {
     resultadoDiv.classList.remove("hidden");
@@ -16,30 +17,59 @@ function mostrarProductoNoEncontrado() {
     resultadoDiv.innerHTML = `
         <div class="error-box">
             <p>😕 Este producto no está en nuestra base de datos todavía.</p>
-            <p style="color:#777;font-size:0.85rem">Podés fotografiar la etiqueta y la IA va a intentar analizarlo igual.</p>
-            <label class="upload-label" for="foto-etiqueta">📷 Fotografiar etiqueta</label>
-            <input type="file" id="foto-etiqueta" accept="image/*" capture="environment">
+            <p style="color:#777;font-size:0.85rem">Sacá dos fotos: el frente del producto y la tabla nutricional o lista de ingredientes. La IA lo va a analizar y agregar a la base de datos.</p>
+            <div id="pasos-foto" style="width:100%;display:flex;flex-direction:column;gap:10px;">
+                <div id="paso1">
+                    <p style="color:#aaa;font-size:0.85rem;margin-bottom:8px;">📸 Paso 1: Foto del frente del producto</p>
+                    <label class="upload-label" for="foto-frente">📷 Sacar foto del frente</label>
+                    <input type="file" id="foto-frente" accept="image/*" capture="environment">
+                </div>
+                <div id="paso2" style="display:none;">
+                    <p style="color:#00e676;font-size:0.85rem;margin-bottom:4px;">✅ Frente capturado</p>
+                    <p style="color:#aaa;font-size:0.85rem;margin-bottom:8px;">📸 Paso 2: Foto de ingredientes o tabla nutricional</p>
+                    <label class="upload-label" for="foto-ingredientes">📷 Sacar foto de ingredientes</label>
+                    <input type="file" id="foto-ingredientes" accept="image/*" capture="environment">
+                </div>
+            </div>
             <button class="btn btn-secondary" onclick="reiniciar()">🔄 Escanear otro producto</button>
         </div>
     `;
-    document.getElementById("foto-etiqueta").addEventListener("change", manejarFotoEtiqueta);
+    document.getElementById("foto-frente").addEventListener("change", manejarFotoFrente);
 }
 
-function manejarFotoEtiqueta(e) {
+let imagenFrenteBase64 = null;
+
+function manejarFotoFrente(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+        imagenFrenteBase64 = ev.target.result.split(",")[1];
+        document.getElementById("paso2").style.display = "block";
+        document.getElementById("foto-ingredientes").addEventListener("change", manejarFotoIngredientes);
+    };
+    reader.readAsDataURL(file);
+}
+
+function manejarFotoIngredientes(e) {
     const file = e.target.files[0];
     if (!file) return;
     mostrarCargando();
     const reader = new FileReader();
     reader.onload = function(ev) {
-        const base64 = ev.target.result.split(",")[1];
-        fetch("/analizar-imagen", {
+        const imagenIngredientesBase64 = ev.target.result.split(",")[1];
+        const endpoint = ultimoBarcode ? `/agregar-producto/${ultimoBarcode}` : "/analizar-imagen";
+        fetch(endpoint, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ imagen: base64 })
+            body: JSON.stringify({
+                imagen_frente: imagenFrenteBase64,
+                imagen_ingredientes: imagenIngredientesBase64
+            })
         })
         .then(res => res.json())
         .then(data => mostrarResultado(data))
-        .catch(() => mostrarMensaje("❌ Error al analizar la imagen."));
+        .catch(() => mostrarMensaje("❌ Error al analizar las imágenes."));
     };
     reader.readAsDataURL(file);
 }
@@ -118,6 +148,8 @@ function compartirTelegram() {
 
 function reiniciar() {
     ultimoAnalisis = null;
+    ultimoBarcode = null;
+    imagenFrenteBase64 = null;
     resultadoDiv.classList.add("hidden");
     resultadoDiv.innerHTML = "";
     html5QrCode.start(
@@ -128,6 +160,7 @@ function reiniciar() {
 }
 
 function onScanSuccess(decodedText) {
+    ultimoBarcode = decodedText;
     html5QrCode.stop().then(() => {
         mostrarCargando();
         fetch(`/analizar/${decodedText}`)
