@@ -5,7 +5,6 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import requests
 import os
-import base64
 from dotenv import load_dotenv
 from groq import Groq
 
@@ -16,9 +15,12 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+OFF_USER = os.getenv("OFF_USER")
+OFF_PASSWORD = os.getenv("OFF_PASSWORD")
 
 class ImagenRequest(BaseModel):
-    imagen: str
+    imagen_frente: str
+    imagen_ingredientes: str
 
 def obtener_producto_openfoodfacts(barcode: str):
     try:
@@ -115,13 +117,81 @@ def analizar_con_ia(producto: dict) -> dict:
     aditivos_limpios = [a.replace("en:", "") for a in aditivos]
 
     prompt = construir_prompt(nombre, ingredientes, nutrientes, alergenos_limpios, aditivos_limpios)
-
     chat = client.chat.completions.create(
         messages=[{"role": "user", "content": prompt}],
         model="llama-3.1-8b-instant",
     )
-
     return parsear_respuesta(chat.choices[0].message.content, nombre, fuente)
+
+def extraer_datos_imagen(imagen_frente: str, imagen_ingredientes: str) -> dict:
+    chat = client.chat.completions.create(
+        model="llama-3.2-11b-vision-preview",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Esta es la foto del frente del producto:"
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{imagen_frente}"}
+                    },
+                    {
+                        "type": "text",
+                        "text": "Esta es la foto de los ingredientes y tabla nutricional:"
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{imagen_ingredientes}"}
+                    },
+                    {
+                        "type": "text",
+                        "text": """Extraé toda la información visible de las imágenes y respondé SOLO con este JSON sin ningún texto adicional:
+{
+  "nombre": "nombre del producto",
+  "marca": "marca del producto",
+  "ingredientes": "lista de ingredientes",
+  "calorias": "número o N/D",
+  "proteinas": "número o N/D",
+  "grasas": "número o N/D",
+  "azucares": "número o N/D",
+  "sodio": "número o N/D",
+  "alergenos": "lista o Ninguno",
+  "aditivos": "lista de códigos E o Ninguno"
+}"""
+                    }
+                ]
+            }
+        ],
+    )
+    import json
+    texto = chat.choices[0].message.content.strip()
+    texto = texto.replace("```json", "").replace("```", "").strip()
+    return json.loads(texto)
+
+def agregar_a_openfoodfacts(barcode: str, datos: dict):
+    try:
+        url = "https://world.openfoodfacts.org/cgi/product_jqm2.pl"
+        payload = {
+            "code": barcode,
+            "product_name": datos.get("nombre", ""),
+            "brands": datos.get("marca", ""),
+            "ingredients_text": datos.get("ingredientes", ""),
+            "nutriment_energy-kcal_100g": datos.get("calorias", ""),
+            "nutriment_proteins_100g": datos.get("proteinas", ""),
+            "nutriment_fat_100g": datos.get("grasas", ""),
+            "nutriment_sugars_100g": datos.get("azucares", ""),
+            "nutriment_sodium_100g": datos.get("sodio", ""),
+            "allergens": datos.get("alergenos", ""),
+            "additives": datos.get("aditivos", ""),
+            "countries": "Argentina",
+            "lang": "es",
+        }
+        requests.post(url, data=payload, auth=(OFF_USER, OFF_PASSWORD), timeout=10)
+    except:
+        pass
 
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
@@ -137,34 +207,60 @@ async def analizar(barcode: str):
 @app.post("/analizar-imagen")
 async def analizar_imagen(req: ImagenRequest):
     try:
-        chat = client.chat.completions.create(
-            model="llama-3.2-11b-vision-preview",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{req.imagen}"
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": """Analizá la etiqueta nutricional de este producto. Extraé toda la información visible y respondé en español argentino con EXACTAMENTE este formato:
-PUNTUACION: [número del 1 al 10]
-SALUDABLE: [Sí, No, o Moderado]
-RESUMEN: [2 oraciones explicando si es saludable y por qué]
-ALERGENOS: [alérgenos visibles o "Ninguno detectado"]
-CONSEJO: [1 consejo práctico]
-ADITIVOS: [aditivos visibles con explicación simple, o "Ninguno detectado"]
-PROHIBIDOS: [ingredientes prohibidos en otros países con detalle, o "Ninguno detectado"]"""
-                        }
-                    ]
-                }
-            ],
+        datos = extraer_datos_imagen(req.imagen_frente, req.imagen_ingredientes)
+        
+        nutrientes = {
+            "energy-kcal_100g": datos.get("calorias"),
+            "proteins_100g": datos.get("proteinas"),
+            "fat_100g": datos.get("grasas"),
+            "sugars_100g": datos.get("azucares"),
+            "sodium_100g": datos.get("sodio"),
+        }
+        alergenos = [datos.get("alergenos", "")] if datos.get("alergenos") != "Ninguno" else []
+        aditivos = [datos.get("aditivos", "")] if datos.get("aditivos") != "Ninguno" else []
+
+        prompt = construir_prompt(
+            datos.get("nombre", "Producto desconocido"),
+            datos.get("ingredientes", "No disponible"),
+            nutrientes,
+            alergenos,
+            aditivos
         )
-        respuesta = chat.choices[0].message.content
-        return parsear_respuesta(respuesta, "Producto escaneado por imagen", "Análisis por IA")
+        chat = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.1-8b-instant",
+        )
+        return parsear_respuesta(chat.choices[0].message.content, datos.get("nombre", "Producto escaneado"), "Análisis por imagen")
+    except Exception as e:
+        return {"error": str(e)}
+
+@app.post("/agregar-producto/{barcode}")
+async def agregar_producto(barcode: str, req: ImagenRequest):
+    try:
+        datos = extraer_datos_imagen(req.imagen_frente, req.imagen_ingredientes)
+        agregar_a_openfoodfacts(barcode, datos)
+
+        nutrientes = {
+            "energy-kcal_100g": datos.get("calorias"),
+            "proteins_100g": datos.get("proteinas"),
+            "fat_100g": datos.get("grasas"),
+            "sugars_100g": datos.get("azucares"),
+            "sodium_100g": datos.get("sodio"),
+        }
+        alergenos = [datos.get("alergenos", "")] if datos.get("alergenos") != "Ninguno" else []
+        aditivos = [datos.get("aditivos", "")] if datos.get("aditivos") != "Ninguno" else []
+
+        prompt = construir_prompt(
+            datos.get("nombre", "Producto desconocido"),
+            datos.get("ingredientes", "No disponible"),
+            nutrientes,
+            alergenos,
+            aditivos
+        )
+        chat = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.1-8b-instant",
+        )
+        return parsear_respuesta(chat.choices[0].message.content, datos.get("nombre", "Producto escaneado"), "Análisis por imagen ✨ Agregado a la base de datos")
     except Exception as e:
         return {"error": str(e)}
